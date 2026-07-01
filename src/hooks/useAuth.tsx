@@ -7,6 +7,7 @@ interface Profile {
   email: string
   full_name: string
   role: 'admin' | 'operatore'
+  status: 'pending' | 'active' | 'disabled'
 }
 
 interface AuthContextType {
@@ -62,8 +63,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error: error?.message ?? null }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) return { error: error.message }
+
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('status')
+      .eq('id', data.user.id)
+      .single()
+
+    if (profileData?.status === 'disabled') {
+      await supabase.auth.signOut()
+      return { error: 'Il tuo account è stato disattivato. Contatta l\'amministratore.' }
+    }
+
+    return { error: null }
   }
 
   const signOut = async () => {

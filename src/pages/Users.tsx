@@ -7,6 +7,7 @@ interface Profile {
   email: string
   full_name: string
   role: 'admin' | 'operatore'
+  status: 'pending' | 'active' | 'disabled'
   created_at: string
 }
 
