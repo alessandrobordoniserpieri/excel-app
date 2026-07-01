@@ -2,6 +2,7 @@ import { useStore } from '../hooks/useStore'
 import { getBalanceDue, getDaysRemaining, getDeadlineColor, getPriorityColor } from '../types'
 import type { Practice, Project } from '../types'
 import { Link } from 'react-router-dom'
+import { useOperators } from '../hooks/useOperators'
 
 function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
   return (
@@ -13,6 +14,7 @@ function StatCard({ label, value, color }: { label: string; value: number; color
 }
 
 function PracticeRow({ practice, projects }: { practice: Practice; projects: Project[] }) {
+  const { formatOperator } = useOperators()
   const days = getDaysRemaining(practice.expiryDate)
   const balance = getBalanceDue(practice)
   const project = projects.find((p) => p.id === practice.projectId)
@@ -36,7 +38,7 @@ function PracticeRow({ practice, projects }: { practice: Practice; projects: Pro
           {project && (
             <span className="text-xs text-slate-400">· {project.name}</span>
           )}
-          <span className="text-xs text-slate-400">· {practice.operator}</span>
+          <span className="text-xs text-slate-400">· {formatOperator(practice.operator)}</span>
         </div>
       </div>
       <div className="flex items-center gap-4 shrink-0">

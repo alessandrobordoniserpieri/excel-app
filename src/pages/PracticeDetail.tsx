@@ -8,6 +8,7 @@ import {
   getPriorityColor,
 } from '../types'
 import PracticeForm from '../components/PracticeForm'
+import { useOperators } from '../hooks/useOperators'
 
 function PracticeDetail() {
   const { id } = useParams()
@@ -22,6 +23,7 @@ function PracticeDetail() {
     addActivity: storeAddActivity,
     toggleActivity: storeToggleActivity,
   } = useStore()
+  const { formatOperator } = useOperators()
   const [showEditForm, setShowEditForm] = useState(false)
   const [newActivity, setNewActivity] = useState('')
 
@@ -113,7 +115,7 @@ function PracticeDetail() {
                 ['Comune', practice.municipality],
                 ['Indirizzo', practice.address],
                 ['Catastale', practice.cadastralRef || '—'],
-                ['Operatore', practice.operator],
+                ['Operatore', formatOperator(practice.operator)],
                 ['Status', practice.status],
                 ['Stato Ente', practice.paStatus || '—'],
                 ['Pericolosità', practice.hazardLevel || '—'],

@@ -4,11 +4,13 @@ import { useStore } from '../hooks/useStore'
 import { getBalanceDue, getDaysRemaining, getDeadlineColor, getPriorityColor } from '../types'
 import ProjectForm from '../components/ProjectForm'
 import PracticeForm from '../components/PracticeForm'
+import { useOperators } from '../hooks/useOperators'
 
 function ProjectDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { projects, practices: allPractices, updateProject, deleteProject, addPractice } = useStore()
+  const { formatOperator } = useOperators()
   const [showEditProject, setShowEditProject] = useState(false)
   const [showNewPractice, setShowNewPractice] = useState(false)
   const project = projects.find((p) => p.id === id)
@@ -123,7 +125,7 @@ function ProjectDetail() {
                       {practice.practiceType}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{practice.operator}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600">{formatOperator(practice.operator)}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(practice.priority)}`}>
                       {practice.priority}

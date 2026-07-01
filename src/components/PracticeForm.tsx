@@ -7,9 +7,9 @@ import {
   INVOICE_STATUSES,
   PAYMENT_NOTES,
   PRIORITIES,
-  OPERATORS,
 } from '../data/dropdowns'
 import { useStore } from '../hooks/useStore'
+import { useOperators } from '../hooks/useOperators'
 
 interface PracticeFormProps {
   practice?: Practice
@@ -102,6 +102,7 @@ function NumberField({
 
 function PracticeForm({ practice, defaultProjectId, onSave, onCancel }: PracticeFormProps) {
   const { projects } = useStore()
+  const { activeOperators } = useOperators()
   const [form, setForm] = useState({
     projectId: practice?.projectId ?? defaultProjectId ?? '',
     clientName: practice?.clientName ?? '',
@@ -204,7 +205,7 @@ function PracticeForm({ practice, defaultProjectId, onSave, onCancel }: Practice
                 label="Operatore"
                 value={form.operator}
                 onChange={(v) => set('operator', v)}
-                options={OPERATORS}
+                options={activeOperators}
               />
             </div>
           </div>
