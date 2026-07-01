@@ -89,17 +89,18 @@ function Users() {
       return
     }
 
-    const { error: updErr } = await supabase
-      .from('profiles')
-      .update({ status: 'disabled' })
-      .eq('id', confirmAction.profile.id)
+    setLoading(true)
+    const { error: fnErr } = await supabase.functions.invoke('manage-user', {
+      body: { action: 'disable', userId: confirmAction.profile.id },
+    })
 
-    if (updErr) {
+    if (fnErr) {
       setError('Errore durante la disattivazione.')
     } else {
       setMessage(`${confirmAction.profile.full_name} è stato disattivato.`)
       loadProfiles()
     }
+    setLoading(false)
     setConfirmAction(null)
   }
 
@@ -110,17 +111,18 @@ function Users() {
   const handleConfirmReactivate = async () => {
     if (!confirmAction || confirmAction.type !== 'reactivate') return
 
-    const { error: updErr } = await supabase
-      .from('profiles')
-      .update({ status: 'active' })
-      .eq('id', confirmAction.profile.id)
+    setLoading(true)
+    const { error: fnErr } = await supabase.functions.invoke('manage-user', {
+      body: { action: 'reactivate', userId: confirmAction.profile.id },
+    })
 
-    if (updErr) {
+    if (fnErr) {
       setError('Errore durante la riattivazione.')
     } else {
       setMessage(`${confirmAction.profile.full_name} è stato riattivato.`)
       loadProfiles()
     }
+    setLoading(false)
     setConfirmAction(null)
   }
 
@@ -131,17 +133,18 @@ function Users() {
   const handleConfirmDelete = async () => {
     if (!confirmAction || confirmAction.type !== 'delete') return
 
-    const { error: delErr } = await supabase
-      .from('profiles')
-      .delete()
-      .eq('id', confirmAction.profile.id)
+    setLoading(true)
+    const { error: fnErr } = await supabase.functions.invoke('manage-user', {
+      body: { action: 'delete', userId: confirmAction.profile.id },
+    })
 
-    if (delErr) {
+    if (fnErr) {
       setError('Errore durante l\'eliminazione.')
     } else {
       setMessage(`${confirmAction.profile.full_name} è stato eliminato.`)
       loadProfiles()
     }
+    setLoading(false)
     setConfirmAction(null)
   }
 
