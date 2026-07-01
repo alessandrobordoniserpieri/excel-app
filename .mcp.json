@@ -9,6 +9,11 @@
       "type": "stdio",
       "command": "npx",
       "args": ["-y", "@anthropic/sequential-thinking-mcp@latest"]
+    },
+    "superpowers": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "superpowers-mcp@latest"]
     }
   }
 }
