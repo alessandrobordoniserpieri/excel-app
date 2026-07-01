@@ -50,7 +50,7 @@ export interface Project {
 
 export interface Practice {
   id: string
-  projectId: string
+  projectId: string | null
   practiceCode: string
   clientName: string
   municipality: string

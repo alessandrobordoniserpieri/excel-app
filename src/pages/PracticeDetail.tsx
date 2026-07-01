@@ -92,6 +92,16 @@ function PracticeDetail() {
           <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
             <h2 className="text-base font-semibold text-slate-900 mb-4">Dettagli pratica</h2>
             <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-slate-400 mb-0.5">Progetto</p>
+                {project ? (
+                  <Link to={`/projects/${project.id}`} className="text-sm font-medium text-blue-600 hover:underline">
+                    {project.name}
+                  </Link>
+                ) : (
+                  <p className="text-sm text-slate-400 italic">Nessun progetto</p>
+                )}
+              </div>
               {[
                 ['Codice', practice.practiceCode],
                 ['Tipologia', practice.practiceType],

@@ -137,8 +137,12 @@ function Practices() {
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-sm font-medium text-slate-900">{practice.clientName}</p>
-                    {project && (
-                      <p className="text-xs text-slate-400">{project.name}</p>
+                    {project ? (
+                      <Link to={`/projects/${project.id}`} className="text-xs text-blue-500 hover:underline">
+                        {project.name}
+                      </Link>
+                    ) : (
+                      <p className="text-xs text-slate-300 italic">Senza progetto</p>
                     )}
                   </td>
                   <td className="px-4 py-3">
