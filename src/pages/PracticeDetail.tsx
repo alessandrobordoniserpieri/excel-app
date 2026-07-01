@@ -1,21 +1,33 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { mockPractices, mockProjects, mockActivities, mockInvoices } from '../data/mockData'
+import { useStore } from '../hooks/useStore'
 import {
   getBalanceDue,
   getDaysRemaining,
   getDeadlineColor,
   getPriorityColor,
 } from '../types'
+import PracticeForm from '../components/PracticeForm'
 
 function PracticeDetail() {
   const { id } = useParams()
-  const practice = mockPractices.find((p) => p.id === id)
-  const [activities, setActivities] = useState(
-    mockActivities.filter((a) => a.practiceId === id),
-  )
+  const navigate = useNavigate()
+  const {
+    practices,
+    projects,
+    activities: allActivities,
+    invoices: allInvoices,
+    updatePractice,
+    deletePractice,
+    addActivity: storeAddActivity,
+    toggleActivity: storeToggleActivity,
+  } = useStore()
+  const [showEditForm, setShowEditForm] = useState(false)
   const [newActivity, setNewActivity] = useState('')
-  const invoices = mockInvoices.filter((i) => i.practiceId === id)
+
+  const practice = practices.find((p) => p.id === id)
+  const activities = allActivities.filter((a) => a.practiceId === id)
+  const invoices = allInvoices.filter((i) => i.practiceId === id)
 
   if (!practice) {
     return (
@@ -25,38 +37,14 @@ function PracticeDetail() {
     )
   }
 
-  const project = mockProjects.find((p) => p.id === practice.projectId)
+  const project = projects.find((p) => p.id === practice.projectId)
   const days = getDaysRemaining(practice.expiryDate)
   const balance = getBalanceDue(practice)
   const completedActivities = activities.filter((a) => a.isCompleted).length
 
-  const toggleActivity = (actId: string) => {
-    setActivities((prev) =>
-      prev.map((a) =>
-        a.id === actId
-          ? {
-              ...a,
-              isCompleted: !a.isCompleted,
-              completedAt: !a.isCompleted ? new Date().toISOString().split('T')[0] : null,
-            }
-          : a,
-      ),
-    )
-  }
-
   const addActivity = () => {
     if (!newActivity.trim()) return
-    setActivities((prev) => [
-      ...prev,
-      {
-        id: `act-${Date.now()}`,
-        practiceId: id!,
-        description: newActivity.trim(),
-        isCompleted: false,
-        completedAt: null,
-        sortOrder: prev.length,
-      },
-    ])
+    storeAddActivity(id!, newActivity.trim())
     setNewActivity('')
   }
 
@@ -74,8 +62,25 @@ function PracticeDetail() {
           )}
           <span className="text-slate-600">{practice.practiceCode}</span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
           <h1 className="text-2xl font-bold text-slate-900">{practice.clientName}</h1>
+          <button
+            onClick={() => setShowEditForm(true)}
+            className="px-3 py-1 text-sm text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+          >
+            Modifica
+          </button>
+          <button
+            onClick={() => {
+              if (confirm('Eliminare questa pratica?')) {
+                deletePractice(id!)
+                navigate('/practices')
+              }
+            }}
+            className="px-3 py-1 text-sm text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            Elimina
+          </button>
           <span className={`px-3 py-1 rounded-full text-sm font-medium ${getPriorityColor(practice.priority)}`}>
             {practice.priority}
           </span>
@@ -147,7 +152,7 @@ function PracticeDetail() {
                   <input
                     type="checkbox"
                     checked={activity.isCompleted}
-                    onChange={() => toggleActivity(activity.id)}
+                    onChange={() => storeToggleActivity(activity.id)}
                     className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className={`text-sm flex-1 ${activity.isCompleted ? 'line-through text-slate-400' : 'text-slate-700'}`}>
@@ -261,6 +266,17 @@ function PracticeDetail() {
           </div>
         </div>
       </div>
+
+      {showEditForm && (
+        <PracticeForm
+          practice={practice}
+          onSave={(data) => {
+            updatePractice(id!, data)
+            setShowEditForm(false)
+          }}
+          onCancel={() => setShowEditForm(false)}
+        />
+      )}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
-import { mockPractices, mockProjects } from '../data/mockData'
+import { useStore } from '../hooks/useStore'
 import {
   getBalanceDue,
   getDaysRemaining,
@@ -8,14 +8,17 @@ import {
   getPriorityColor,
 } from '../types'
 import { OPERATORS, PRIORITIES } from '../data/dropdowns'
+import PracticeForm from '../components/PracticeForm'
 
 function Practices() {
+  const { practices: allPractices, projects, addPractice } = useStore()
   const [search, setSearch] = useState('')
   const [filterOperator, setFilterOperator] = useState('')
   const [filterPriority, setFilterPriority] = useState('')
   const [filterStatus, setFilterStatus] = useState<'active' | 'closed' | 'all'>('active')
+  const [showForm, setShowForm] = useState(false)
 
-  const filtered = mockPractices
+  const filtered = allPractices
     .filter((p) => {
       if (search && !p.clientName.toLowerCase().includes(search.toLowerCase())) return false
       if (filterOperator && p.operator !== filterOperator) return false
@@ -45,7 +48,10 @@ function Practices() {
             {filterStatus === 'active' ? ' attive' : filterStatus === 'closed' ? ' chiuse' : ' totali'}
           </p>
         </div>
-        <button className="px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+        <button
+          onClick={() => setShowForm(true)}
+          className="px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+        >
           + Nuova pratica
         </button>
       </div>
@@ -123,7 +129,7 @@ function Practices() {
             {filtered.map((practice) => {
               const days = getDaysRemaining(practice.expiryDate)
               const balance = getBalanceDue(practice)
-              const project = mockProjects.find((pr) => pr.id === practice.projectId)
+              const project = projects.find((pr) => pr.id === practice.projectId)
 
               return (
                 <tr key={practice.id} className="hover:bg-slate-50 transition-colors">
@@ -185,6 +191,16 @@ function Practices() {
           </tbody>
         </table>
       </div>
+
+      {showForm && (
+        <PracticeForm
+          onSave={(data) => {
+            addPractice(data)
+            setShowForm(false)
+          }}
+          onCancel={() => setShowForm(false)}
+        />
+      )}
     </div>
   )
 }

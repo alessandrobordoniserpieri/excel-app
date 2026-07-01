@@ -1,11 +1,18 @@
-import { useParams, Link } from 'react-router-dom'
-import { mockProjects, mockPractices } from '../data/mockData'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { useStore } from '../hooks/useStore'
 import { getBalanceDue, getDaysRemaining, getDeadlineColor, getPriorityColor } from '../types'
+import ProjectForm from '../components/ProjectForm'
+import PracticeForm from '../components/PracticeForm'
 
 function ProjectDetail() {
   const { id } = useParams()
-  const project = mockProjects.find((p) => p.id === id)
-  const practices = mockPractices.filter((p) => p.projectId === id)
+  const navigate = useNavigate()
+  const { projects, practices: allPractices, updateProject, deleteProject, addPractice } = useStore()
+  const [showEditProject, setShowEditProject] = useState(false)
+  const [showNewPractice, setShowNewPractice] = useState(false)
+  const project = projects.find((p) => p.id === id)
+  const practices = allPractices.filter((p) => p.projectId === id)
 
   if (!project) {
     return (
@@ -31,7 +38,26 @@ function ProjectDetail() {
           <span>/</span>
           <span className="text-slate-600">{project.name}</span>
         </div>
-        <h1 className="text-2xl font-bold text-slate-900">{project.name}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-slate-900">{project.name}</h1>
+          <button
+            onClick={() => setShowEditProject(true)}
+            className="px-3 py-1 text-sm text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+          >
+            Modifica
+          </button>
+          <button
+            onClick={() => {
+              if (confirm('Eliminare questo progetto? Le pratiche non verranno eliminate.')) {
+                deleteProject(id!)
+                navigate('/projects')
+              }
+            }}
+            className="px-3 py-1 text-sm text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            Elimina
+          </button>
+        </div>
         <p className="text-sm text-slate-500">{project.clientName}</p>
       </div>
 
@@ -61,7 +87,10 @@ function ProjectDetail() {
           <h2 className="text-base font-semibold text-slate-900">
             Pratiche ({practices.length})
           </h2>
-          <button className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
+          <button
+            onClick={() => setShowNewPractice(true)}
+            className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+          >
             + Nuova pratica
           </button>
         </div>
@@ -125,6 +154,28 @@ function ProjectDetail() {
           </tbody>
         </table>
       </div>
+
+      {showEditProject && (
+        <ProjectForm
+          project={project}
+          onSave={(data) => {
+            updateProject(id!, data)
+            setShowEditProject(false)
+          }}
+          onCancel={() => setShowEditProject(false)}
+        />
+      )}
+
+      {showNewPractice && (
+        <PracticeForm
+          defaultProjectId={id}
+          onSave={(data) => {
+            addPractice(data)
+            setShowNewPractice(false)
+          }}
+          onCancel={() => setShowNewPractice(false)}
+        />
+      )}
     </div>
   )
 }

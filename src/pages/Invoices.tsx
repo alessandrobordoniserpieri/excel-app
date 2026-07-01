@@ -1,7 +1,8 @@
-import { mockInvoices, mockPractices } from '../data/mockData'
+import { useStore } from '../hooks/useStore'
 
 function Invoices() {
-  const totalAmount = mockInvoices.reduce((sum, inv) => sum + inv.amount, 0)
+  const { invoices: allInvoices, practices } = useStore()
+  const totalAmount = allInvoices.reduce((sum, inv) => sum + inv.amount, 0)
 
   return (
     <div className="p-8">
@@ -9,7 +10,7 @@ function Invoices() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Registro fatture</h1>
           <p className="text-sm text-slate-500 mt-1">
-            {mockInvoices.length} fatture · Totale €{totalAmount.toLocaleString('it-IT')}
+            {allInvoices.length} fatture · Totale €{totalAmount.toLocaleString('it-IT')}
           </p>
         </div>
         <button className="px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
@@ -31,8 +32,8 @@ function Invoices() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {mockInvoices.map((invoice) => {
-              const practice = mockPractices.find((p) => p.id === invoice.practiceId)
+            {allInvoices.map((invoice) => {
+              const practice = practices.find((p) => p.id === invoice.practiceId)
               return (
                 <tr key={invoice.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3 text-sm font-mono font-medium text-slate-900">

@@ -1,6 +1,6 @@
-import { mockPractices, mockProjects } from '../data/mockData'
+import { useStore } from '../hooks/useStore'
 import { getBalanceDue, getDaysRemaining, getDeadlineColor, getPriorityColor } from '../types'
-import type { Practice } from '../types'
+import type { Practice, Project } from '../types'
 import { Link } from 'react-router-dom'
 
 function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
@@ -12,10 +12,10 @@ function StatCard({ label, value, color }: { label: string; value: number; color
   )
 }
 
-function PracticeRow({ practice }: { practice: Practice }) {
+function PracticeRow({ practice, projects }: { practice: Practice; projects: Project[] }) {
   const days = getDaysRemaining(practice.expiryDate)
   const balance = getBalanceDue(practice)
-  const project = mockProjects.find((p) => p.id === practice.projectId)
+  const project = projects.find((p) => p.id === practice.projectId)
 
   return (
     <Link
@@ -56,10 +56,11 @@ function PracticeRow({ practice }: { practice: Practice }) {
 }
 
 function Dashboard() {
-  const activePractices = mockPractices.filter(
+  const { practices: allPractices, projects } = useStore()
+  const activePractices = allPractices.filter(
     (p) => !p.status.startsWith('DONE') && p.paStatus !== 'Chiusa',
   )
-  const closedPractices = mockPractices.filter(
+  const closedPractices = allPractices.filter(
     (p) => p.status.startsWith('DONE') || p.paStatus === 'Chiusa',
   )
 
@@ -74,7 +75,7 @@ function Dashboard() {
       return da - db
     })
 
-  const unpaidPractices = mockPractices
+  const unpaidPractices = allPractices
     .filter((p) => getBalanceDue(p) > 0)
     .sort((a, b) => getBalanceDue(b) - getBalanceDue(a))
 
@@ -115,7 +116,7 @@ function Dashboard() {
               </p>
             ) : (
               practicesWithDeadline.map((p) => (
-                <PracticeRow key={p.id} practice={p} />
+                <PracticeRow key={p.id} practice={p} projects={projects} />
               ))
             )}
           </div>
@@ -135,7 +136,7 @@ function Dashboard() {
               </p>
             ) : (
               unpaidPractices.map((p) => (
-                <PracticeRow key={p.id} practice={p} />
+                <PracticeRow key={p.id} practice={p} projects={projects} />
               ))
             )}
           </div>
