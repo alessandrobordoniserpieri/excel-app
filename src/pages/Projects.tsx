@@ -1,36 +1,44 @@
 import { Link } from 'react-router-dom'
-import { mockProjects, mockPractices } from '../data/mockData'
+import { useState } from 'react'
+import { useStore } from '../hooks/useStore'
 import { getBalanceDue } from '../types'
+import ProjectForm from '../components/ProjectForm'
 
 function Projects() {
+  const { projects, practices, addProject } = useStore()
+  const [showForm, setShowForm] = useState(false)
+
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Progetti</h1>
           <p className="text-sm text-slate-500 mt-1">
-            {mockProjects.length} progetti totali
+            {projects.length} progetti totali
           </p>
         </div>
-        <button className="px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+        <button
+          onClick={() => setShowForm(true)}
+          className="px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+        >
           + Nuovo progetto
         </button>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        {mockProjects.map((project) => {
-          const practices = mockPractices.filter(
+        {projects.map((project) => {
+          const projectPractices = practices.filter(
             (p) => p.projectId === project.id,
           )
-          const totalContract = practices.reduce(
+          const totalContract = projectPractices.reduce(
             (sum, p) => sum + p.contractAmount + p.additionalServicesAmount,
             0,
           )
-          const totalBalance = practices.reduce(
+          const totalBalance = projectPractices.reduce(
             (sum, p) => sum + getBalanceDue(p),
             0,
           )
-          const activePractices = practices.filter(
+          const activePractices = projectPractices.filter(
             (p) => !p.status.startsWith('DONE') && p.paStatus !== 'Chiusa',
           )
 
@@ -48,7 +56,7 @@ function Projects() {
                   <p className="text-sm text-slate-500">{project.clientName}</p>
                 </div>
                 <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full">
-                  {practices.length} pratiche
+                  {projectPractices.length} pratiche
                 </span>
               </div>
 
@@ -78,6 +86,16 @@ function Projects() {
           )
         })}
       </div>
+
+      {showForm && (
+        <ProjectForm
+          onSave={(data) => {
+            addProject(data)
+            setShowForm(false)
+          }}
+          onCancel={() => setShowForm(false)}
+        />
+      )}
     </div>
   )
 }
