@@ -21,7 +21,7 @@ function Users() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [confirmAction, setConfirmAction] = useState<{
-    type: 'disable' | 'reactivate'
+    type: 'disable' | 'reactivate' | 'delete'
     profile: Profile
     practiceCount?: number
   } | null>(null)
@@ -124,6 +124,27 @@ function Users() {
     setConfirmAction(null)
   }
 
+  const handleDeletePending = (profile: Profile) => {
+    setConfirmAction({ type: 'delete', profile })
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!confirmAction || confirmAction.type !== 'delete') return
+
+    const { error: delErr } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', confirmAction.profile.id)
+
+    if (delErr) {
+      setError('Errore durante l\'eliminazione.')
+    } else {
+      setMessage(`${confirmAction.profile.full_name} è stato eliminato.`)
+      loadProfiles()
+    }
+    setConfirmAction(null)
+  }
+
   const handleResendInvite = async (profile: Profile) => {
     setError('')
     setMessage('')
@@ -168,15 +189,26 @@ function Users() {
         {open && (
           <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50 min-w-[160px]">
             {profile.status === 'pending' && (
-              <button
-                onClick={() => {
-                  setOpen(false)
-                  handleResendInvite(profile)
-                }}
-                className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-              >
-                Rinvia invito
-              </button>
+              <>
+                <button
+                  onClick={() => {
+                    setOpen(false)
+                    handleResendInvite(profile)
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  Rinvia invito
+                </button>
+                <button
+                  onClick={() => {
+                    setOpen(false)
+                    handleDeletePending(profile)
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                >
+                  Elimina
+                </button>
+              </>
             )}
             {profile.status === 'active' && (
               <button
@@ -312,7 +344,28 @@ function Users() {
       {confirmAction && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            {confirmAction.type === 'disable' ? (
+            {confirmAction.type === 'delete' ? (
+              <>
+                <h2 className="text-lg font-bold text-slate-900 mb-4">Elimina utente</h2>
+                <p className="text-sm text-slate-600 mb-4">
+                  Sei sicuro di voler eliminare <strong>{confirmAction.profile.full_name}</strong>? Questa azione è irreversibile.
+                </p>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setConfirmAction(null)}
+                    className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    onClick={handleConfirmDelete}
+                    className="px-6 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    Elimina
+                  </button>
+                </div>
+              </>
+            ) : confirmAction.type === 'disable' ? (
               <>
                 <h2 className="text-lg font-bold text-slate-900 mb-4">Disattiva utente</h2>
                 <p className="text-sm text-slate-600 mb-4">
