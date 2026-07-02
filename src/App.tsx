@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './hooks/useAuth'
 import { StoreProvider } from './hooks/useStore'
 import Layout from './components/Layout'
 import Login from './pages/Login'
+import SetPassword from './pages/SetPassword'
 import Dashboard from './pages/Dashboard'
 import Projects from './pages/Projects'
 import ProjectDetail from './pages/ProjectDetail'
@@ -45,7 +46,7 @@ function ProtectedRoutes() {
 }
 
 function AppRouter() {
-  const { user, loading } = useAuth()
+  const { user, loading, needsPasswordSet } = useAuth()
 
   if (loading) {
     return (
@@ -53,6 +54,10 @@ function AppRouter() {
         <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
     )
+  }
+
+  if (needsPasswordSet && user) {
+    return <SetPassword />
   }
 
   return (

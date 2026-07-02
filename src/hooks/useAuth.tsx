@@ -16,6 +16,8 @@ interface AuthContextType {
   session: Session | null
   loading: boolean
   isAdmin: boolean
+  needsPasswordSet: boolean
+  clearPasswordSet: () => void
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<{ error: string | null }>
@@ -28,6 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [needsPasswordSet, setNeedsPasswordSet] = useState(false)
 
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
@@ -55,9 +58,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, s) => {
+      (event, s) => {
         setSession(s)
         setUser(s?.user ?? null)
+        if (event === 'PASSWORD_RECOVERY') {
+          setNeedsPasswordSet(true)
+        }
         if (s?.user) {
           fetchProfile(s.user.id)
         } else {
@@ -97,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut()
     setProfile(null)
+    setNeedsPasswordSet(false)
   }
 
   const resetPassword = async (email: string) => {
@@ -106,6 +113,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null }
   }
 
+  const clearPasswordSet = () => setNeedsPasswordSet(false)
+
   return (
     <AuthContext.Provider
       value={{
@@ -114,6 +123,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         loading,
         isAdmin: profile?.role === 'admin',
+        needsPasswordSet,
+        clearPasswordSet,
         signIn,
         signOut,
         resetPassword,
