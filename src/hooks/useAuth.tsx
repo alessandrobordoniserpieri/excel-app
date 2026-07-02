@@ -35,7 +35,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .select('*')
       .eq('id', userId)
       .single()
-    if (data) setProfile(data as Profile)
+    if (data) {
+      const p = data as Profile
+      if (p.status === 'disabled') {
+        await supabase.auth.signOut()
+        setProfile(null)
+        return
+      }
+      setProfile(p)
+    }
   }
 
   useEffect(() => {
@@ -61,6 +69,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  useEffect(() => {
+    if (!user) return
+    const interval = setInterval(() => fetchProfile(user.id), 60_000)
+    return () => clearInterval(interval)
+  }, [user])
 
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })

@@ -72,6 +72,44 @@ Deno.serve(async (req) => {
     }
 
     if (action === "disable") {
+      if (userId === caller.id) {
+        return new Response(
+          JSON.stringify({ error: "Non puoi disattivare te stesso" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      const { data: activeAdmins } = await adminClient
+        .from("profiles")
+        .select("id")
+        .eq("role", "admin")
+        .eq("status", "active");
+
+      const { data: targetProfile } = await adminClient
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .single();
+
+      if (
+        targetProfile?.role === "admin" &&
+        activeAdmins &&
+        activeAdmins.length <= 1
+      ) {
+        return new Response(
+          JSON.stringify({
+            error: "Non puoi disattivare l'ultimo amministratore",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
       const { error } = await adminClient
         .from("profiles")
         .update({ status: "disabled" })

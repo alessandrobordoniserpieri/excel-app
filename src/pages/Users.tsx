@@ -30,11 +30,26 @@ function Users() {
     loadProfiles()
   }, [])
 
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setConfirmAction(null)
+        setShowInvite(false)
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [])
+
   const loadProfiles = async () => {
-    const { data } = await supabase
+    const { data, error: loadErr } = await supabase
       .from('profiles')
       .select('*')
       .order('created_at', { ascending: true })
+    if (loadErr) {
+      setError('Errore nel caricamento degli utenti.')
+      return
+    }
     if (data) setProfiles(data as Profile[])
   }
 
@@ -151,6 +166,7 @@ function Users() {
   const handleResendInvite = async (profile: Profile) => {
     setError('')
     setMessage('')
+    setLoading(true)
 
     const { error: invErr } = await supabase.functions.invoke('invite-user', {
       body: { email: profile.email, fullName: profile.full_name },
@@ -161,6 +177,7 @@ function Users() {
     } else {
       setMessage(`Invito reinviato a ${profile.email}`)
     }
+    setLoading(false)
   }
 
   function ActionMenu({ profile }: { profile: Profile }) {
@@ -259,7 +276,7 @@ function Users() {
           </p>
         </div>
         <button
-          onClick={() => setShowInvite(true)}
+          onClick={() => { setMessage(''); setError(''); setShowInvite(true) }}
           className="px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
         >
           + Invita operatore
@@ -295,9 +312,9 @@ function Users() {
               <tr key={p.id} className="hover:bg-slate-50">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-semibold text-blue-700">
-                        {p.full_name.charAt(0).toUpperCase()}
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${p.status === 'disabled' ? 'bg-slate-100' : 'bg-blue-100'}`}>
+                      <span className={`text-sm font-semibold ${p.status === 'disabled' ? 'text-slate-400' : 'text-blue-700'}`}>
+                        {p.full_name?.charAt(0)?.toUpperCase() ?? 'U'}
                       </span>
                     </div>
                     <span className={`text-sm font-medium ${p.status === 'disabled' ? 'text-slate-400' : 'text-slate-900'}`}>

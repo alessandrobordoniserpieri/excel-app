@@ -15,7 +15,7 @@ function Login() {
     setError('')
     setLoading(true)
     const { error: err } = await signIn(email, password)
-    if (err) setError('Email o password non corretti')
+    if (err) setError(err)
     setLoading(false)
   }
 
