@@ -13,6 +13,8 @@ dist-ssr
 *.local
 .env
 .playwright-mcp/
+test-screenshots/
+test-results/
 
 # Editor directories and files
 .vscode/*
