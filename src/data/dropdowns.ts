@@ -241,13 +241,6 @@ export const PRIORITIES = [
   'Sospesa',
 ] as const
 
-export const OPERATORS = [
-  'Noemi',
-  'Domenico',
-  'Stefania',
-  'Daniele',
-  'Davide',
-] as const
 
 export const ATTACHMENT_CATEGORIES = [
   { value: 'contract', label: 'Contratto' },

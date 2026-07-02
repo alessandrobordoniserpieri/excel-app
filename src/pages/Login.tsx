@@ -15,7 +15,15 @@ function Login() {
     setError('')
     setLoading(true)
     const { error: err } = await signIn(email, password)
-    if (err) setError('Email o password non corretti')
+    if (err) {
+      if (err.includes('disattivato')) {
+        setError(err)
+      } else if (err.includes('fetch') || err.includes('network')) {
+        setError('Errore di connessione. Riprova più tardi.')
+      } else {
+        setError('Email o password non corretti')
+      }
+    }
     setLoading(false)
   }
 

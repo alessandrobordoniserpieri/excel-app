@@ -7,11 +7,13 @@ import {
   getDeadlineColor,
   getPriorityColor,
 } from '../types'
-import { OPERATORS, PRIORITIES } from '../data/dropdowns'
+import { PRIORITIES } from '../data/dropdowns'
 import PracticeForm from '../components/PracticeForm'
+import { useOperators } from '../hooks/useOperators'
 
 function Practices() {
   const { practices: allPractices, projects, addPractice } = useStore()
+  const { activeOperators, formatOperator } = useOperators()
   const [search, setSearch] = useState('')
   const [filterOperator, setFilterOperator] = useState('')
   const [filterPriority, setFilterPriority] = useState('')
@@ -71,7 +73,7 @@ function Practices() {
             className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Tutti gli operatori</option>
-            {OPERATORS.map((op) => (
+            {activeOperators.map((op) => (
               <option key={op} value={op}>{op}</option>
             ))}
           </select>
@@ -156,7 +158,7 @@ function Practices() {
                       {practice.practiceType}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{practice.operator}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600">{formatOperator(practice.operator)}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(practice.priority)}`}>
                       {practice.priority}

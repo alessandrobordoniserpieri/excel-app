@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 
@@ -7,11 +7,12 @@ interface Profile {
   email: string
   full_name: string
   role: 'admin' | 'operatore'
+  status: 'pending' | 'active' | 'disabled'
   created_at: string
 }
 
 function Users() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, profile: currentProfile } = useAuth()
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [showInvite, setShowInvite] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
@@ -19,16 +20,36 @@ function Users() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [confirmAction, setConfirmAction] = useState<{
+    type: 'disable' | 'reactivate' | 'delete'
+    profile: Profile
+    practiceCount?: number
+  } | null>(null)
 
   useEffect(() => {
     loadProfiles()
   }, [])
 
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setConfirmAction(null)
+        setShowInvite(false)
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [])
+
   const loadProfiles = async () => {
-    const { data } = await supabase
+    const { data, error: loadErr } = await supabase
       .from('profiles')
       .select('*')
       .order('created_at', { ascending: true })
+    if (loadErr) {
+      setError('Errore nel caricamento degli utenti.')
+      return
+    }
     if (data) setProfiles(data as Profile[])
   }
 
@@ -55,6 +76,188 @@ function Users() {
     setLoading(false)
   }
 
+  const handleDisable = async (profile: Profile) => {
+    const { count } = await supabase
+      .from('practices')
+      .select('*', { count: 'exact', head: true })
+      .eq('operator', profile.full_name)
+
+    setConfirmAction({
+      type: 'disable',
+      profile,
+      practiceCount: count ?? 0,
+    })
+  }
+
+  const handleConfirmDisable = async () => {
+    if (!confirmAction || confirmAction.type !== 'disable') return
+
+    const activeAdmins = profiles.filter(
+      (p) => p.role === 'admin' && p.status === 'active'
+    )
+    if (
+      confirmAction.profile.role === 'admin' &&
+      activeAdmins.length <= 1
+    ) {
+      setError('Non puoi disattivare l\'ultimo amministratore.')
+      setConfirmAction(null)
+      return
+    }
+
+    setLoading(true)
+    const { error: fnErr } = await supabase.functions.invoke('manage-user', {
+      body: { action: 'disable', userId: confirmAction.profile.id },
+    })
+
+    if (fnErr) {
+      setError('Errore durante la disattivazione.')
+    } else {
+      setMessage(`${confirmAction.profile.full_name} è stato disattivato.`)
+      loadProfiles()
+    }
+    setLoading(false)
+    setConfirmAction(null)
+  }
+
+  const handleReactivate = (profile: Profile) => {
+    setConfirmAction({ type: 'reactivate', profile })
+  }
+
+  const handleConfirmReactivate = async () => {
+    if (!confirmAction || confirmAction.type !== 'reactivate') return
+
+    setLoading(true)
+    const { error: fnErr } = await supabase.functions.invoke('manage-user', {
+      body: { action: 'reactivate', userId: confirmAction.profile.id },
+    })
+
+    if (fnErr) {
+      setError('Errore durante la riattivazione.')
+    } else {
+      setMessage(`${confirmAction.profile.full_name} è stato riattivato.`)
+      loadProfiles()
+    }
+    setLoading(false)
+    setConfirmAction(null)
+  }
+
+  const handleDeletePending = (profile: Profile) => {
+    setConfirmAction({ type: 'delete', profile })
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!confirmAction || confirmAction.type !== 'delete') return
+
+    setLoading(true)
+    const { error: fnErr } = await supabase.functions.invoke('manage-user', {
+      body: { action: 'delete', userId: confirmAction.profile.id },
+    })
+
+    if (fnErr) {
+      setError('Errore durante l\'eliminazione.')
+    } else {
+      setMessage(`${confirmAction.profile.full_name} è stato eliminato.`)
+      loadProfiles()
+    }
+    setLoading(false)
+    setConfirmAction(null)
+  }
+
+  const handleResendInvite = async (profile: Profile) => {
+    setError('')
+    setMessage('')
+    setLoading(true)
+
+    const { error: invErr } = await supabase.functions.invoke('invite-user', {
+      body: { email: profile.email, fullName: profile.full_name },
+    })
+
+    if (invErr) {
+      setError('Errore nel reinvio dell\'invito. Riprova.')
+    } else {
+      setMessage(`Invito reinviato a ${profile.email}`)
+    }
+    setLoading(false)
+  }
+
+  function ActionMenu({ profile }: { profile: Profile }) {
+    const [open, setOpen] = useState(false)
+    const menuRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+        if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+          setOpen(false)
+        }
+      }
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
+
+    if (profile.id === currentProfile?.id) return null
+
+    return (
+      <div className="relative" ref={menuRef}>
+        <button
+          onClick={() => setOpen(!open)}
+          className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />
+          </svg>
+        </button>
+        {open && (
+          <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50 min-w-[160px]">
+            {profile.status === 'pending' && (
+              <>
+                <button
+                  onClick={() => {
+                    setOpen(false)
+                    handleResendInvite(profile)
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  Rinvia invito
+                </button>
+                <button
+                  onClick={() => {
+                    setOpen(false)
+                    handleDeletePending(profile)
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                >
+                  Elimina
+                </button>
+              </>
+            )}
+            {profile.status === 'active' && (
+              <button
+                onClick={() => {
+                  setOpen(false)
+                  handleDisable(profile)
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+              >
+                Disattiva
+              </button>
+            )}
+            {profile.status === 'disabled' && (
+              <button
+                onClick={() => {
+                  setOpen(false)
+                  handleReactivate(profile)
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50"
+              >
+                Riattiva
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   if (!isAdmin) {
     return (
       <div className="p-8">
@@ -73,7 +276,7 @@ function Users() {
           </p>
         </div>
         <button
-          onClick={() => setShowInvite(true)}
+          onClick={() => { setMessage(''); setError(''); setShowInvite(true) }}
           className="px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
         >
           + Invita operatore
@@ -92,14 +295,16 @@ function Users() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm max-h-[70vh] overflow-auto">
         <table className="w-full">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
+            <tr className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
               <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Nome</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Ruolo</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Stato</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Registrato il</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Azioni</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -107,15 +312,19 @@ function Users() {
               <tr key={p.id} className="hover:bg-slate-50">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-semibold text-blue-700">
-                        {p.full_name.charAt(0).toUpperCase()}
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${p.status === 'disabled' ? 'bg-slate-100' : 'bg-blue-100'}`}>
+                      <span className={`text-sm font-semibold ${p.status === 'disabled' ? 'text-slate-400' : 'text-blue-700'}`}>
+                        {p.full_name?.charAt(0)?.toUpperCase() ?? 'U'}
                       </span>
                     </div>
-                    <span className="text-sm font-medium text-slate-900">{p.full_name}</span>
+                    <span className={`text-sm font-medium ${p.status === 'disabled' ? 'text-slate-400' : 'text-slate-900'}`}>
+                      {p.full_name}
+                    </span>
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm text-slate-600">{p.email}</td>
+                <td className={`px-6 py-4 text-sm ${p.status === 'disabled' ? 'text-slate-400' : 'text-slate-600'}`}>
+                  {p.email}
+                </td>
                 <td className="px-6 py-4">
                   <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                     p.role === 'admin'
@@ -125,14 +334,108 @@ function Users() {
                     {p.role === 'admin' ? 'Admin' : 'Operatore'}
                   </span>
                 </td>
+                <td className="px-6 py-4">
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                    p.status === 'active'
+                      ? 'bg-green-100 text-green-700'
+                      : p.status === 'pending'
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {p.status === 'active'
+                      ? 'Attivo'
+                      : p.status === 'pending'
+                        ? 'In attesa'
+                        : 'Disattivato'}
+                  </span>
+                </td>
                 <td className="px-6 py-4 text-sm text-slate-500">
                   {new Date(p.created_at).toLocaleDateString('it-IT')}
+                </td>
+                <td className="px-6 py-4">
+                  <ActionMenu profile={p} />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {confirmAction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            {confirmAction.type === 'delete' ? (
+              <>
+                <h2 className="text-lg font-bold text-slate-900 mb-4">Elimina utente</h2>
+                <p className="text-sm text-slate-600 mb-4">
+                  Sei sicuro di voler eliminare <strong>{confirmAction.profile.full_name}</strong>? Questa azione è irreversibile.
+                </p>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setConfirmAction(null)}
+                    className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    onClick={handleConfirmDelete}
+                    className="px-6 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    Elimina
+                  </button>
+                </div>
+              </>
+            ) : confirmAction.type === 'disable' ? (
+              <>
+                <h2 className="text-lg font-bold text-slate-900 mb-4">Disattiva utente</h2>
+                <p className="text-sm text-slate-600 mb-4">
+                  Sei sicuro di voler disattivare {confirmAction.profile.full_name}? Non potrà più accedere al sistema.
+                </p>
+                {(confirmAction.practiceCount ?? 0) > 0 && (
+                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-700">
+                    Questo utente ha {confirmAction.practiceCount} pratiche assegnate. Dopo la disattivazione le pratiche resteranno assegnate ma potrai riassegnarle.
+                  </div>
+                )}
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setConfirmAction(null)}
+                    className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    onClick={handleConfirmDisable}
+                    className="px-6 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    Disattiva
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="text-lg font-bold text-slate-900 mb-4">Riattiva utente</h2>
+                <p className="text-sm text-slate-600 mb-4">
+                  Vuoi riattivare {confirmAction.profile.full_name}? Potrà accedere di nuovo al sistema.
+                </p>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setConfirmAction(null)}
+                    className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    onClick={handleConfirmReactivate}
+                    className="px-6 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Riattiva
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {showInvite && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
