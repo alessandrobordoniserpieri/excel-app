@@ -295,10 +295,10 @@ function Users() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm max-h-[70vh] overflow-auto">
         <table className="w-full">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
+            <tr className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
               <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Nome</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Ruolo</th>

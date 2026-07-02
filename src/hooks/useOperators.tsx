@@ -9,7 +9,7 @@ export function useOperators() {
       const { data } = await supabase
         .from('profiles')
         .select('full_name, status')
-        .in('status', ['active', 'pending'])
+        .eq('status', 'active')
         .order('full_name')
       if (data) setActiveOperators(data.map((d) => d.full_name))
     }
